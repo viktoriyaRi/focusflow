@@ -69,23 +69,28 @@ async function ensurePermission() {
   const p = await Notification.requestPermission();
   return p === "granted";
 }
+// put this once near the top of the file (after helpers/imports)
+const ICON_URL = new URL("favicon.ico", import.meta.env.BASE_URL).toString();
 
 function notify(title, options = {}) {
   try {
-    if (!canNotify() || !secureOk()) return;
+    if (!canNotify()) return;
+    if (!secureOk()) return;
     if (Notification.permission !== "granted") return;
 
-    const base = {
+    new Notification(title, {
+      // user-provided options first…
+      ...options,
+
+      // …but enforce safe defaults
       requireInteraction: true,
       renotify: true,
       tag: options.tag || "focusflow",
       silent: false,
-      icon: "/favicon.ico",
-      ...(options.badge ? { badge: options.badge } : {}),
-      ...(options.timestamp ? { timestamp: options.timestamp } : {}),
-    };
-
-    new Notification(title, { ...base, ...options });
+      icon: options.icon ?? ICON_URL,
+      badge: options.badge ?? ICON_URL,
+      timestamp: Date.now(),
+    });
   } catch (e) {
     console.warn("notify failed", e);
   }
