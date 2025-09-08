@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🎛 Custom scrollbar helpers */
+
+/* Thin scrollbar for scrollable lists (Firefox) */
+.custom-scroll {
+  scrollbar-width: thin;
+  /* thumb color | track color */
+  scrollbar-color: #943a0b transparent;
+}
+
+/* Thin scrollbar for scrollable lists (WebKit: Chrome/Safari/Edge) */
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.7);
+  border-radius: 9999px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* For Firefox (alternative color) */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #64748b55 transparent;
+}
+
+/* Extra utility: thin minimal scrollbar */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #64748b33;
+  border-radius: 9999px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b55;
+}
