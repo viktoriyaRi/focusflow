@@ -70,7 +70,9 @@ async function ensurePermission() {
   return p === "granted";
 }
 // put this once near the top of the file (after helpers/imports)
-const ICON_URL = new URL("favicon.ico", import.meta.env.BASE_URL).toString();
+const ICON_URL = `${window.location.origin}${
+  import.meta.env.BASE_URL
+}favicon.png`;
 
 function notify(title, options = {}) {
   try {
