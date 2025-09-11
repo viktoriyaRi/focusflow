@@ -523,7 +523,7 @@ export default function FocusFlow() {
     ) {
       localStorage.setItem(WARN_KEY, "1");
       toast.error(
-        "Enable notifications (HTTPS or localhost) — click 'Enable notifications' above."
+        "Enable notifications (HTTPS or localhost) - click 'Enable notifications' above."
       );
     }
 
@@ -581,7 +581,7 @@ export default function FocusFlow() {
           </h1>
           <p className="text-sm leading-snug text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
             Tiny productivity app that combines a Pomodoro timer, mini-kanban
-            tasks, and habits — with browser notifications and a daily goal.
+            tasks, and habits - with browser notifications and a daily goal.
           </p>
         </div>
 
@@ -628,7 +628,7 @@ export default function FocusFlow() {
           <a
             className="px-3 py-1.5 rounded-xl bg-white text-slate-900 border text-sm shadow-sm hover:shadow
                        dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-            href="https://github.com/"
+            href="https://github.com/viktoriyaRi/focusflow/blob/main/README.md"
             target="_blank"
             rel="noreferrer"
           >
@@ -841,7 +841,7 @@ function Board({ todos, setTodos, onStartTask }) {
       if (localStorage.getItem(k) === "1") return t;
       localStorage.setItem(k, "1");
       changed = true;
-      toast("⚠️ Missed task — priority set to High", { duration: 2500 });
+      toast("⚠️ Missed task - priority set to High", { duration: 2500 });
       return { ...t, priority: "high" };
     });
     if (changed) setTodos(updated);
@@ -1656,7 +1656,7 @@ function Habits({ habits, setHabits, onStartHabit }) {
               >
                 <div>
                   <div className="font-medium flex items-center gap-2">
-                    {h.name} — <span className="text-slate-500">{h.mins}m</span>
+                    {h.name} - <span className="text-slate-500">{h.mins}m</span>
                     {isDoneToday && (
                       <span
                         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs
@@ -1901,7 +1901,7 @@ function DailyGoal({ pomo }) {
         <div className="pl-8 max-h-40 overflow-y-auto custom-scroll space-y-2">
           {sessions.length === 0 ? (
             <div className="text-sm text-slate-400 dark:text-slate-500">
-              No sessions here — start one ⏱️
+              No sessions here - start one ⏱️
             </div>
           ) : (
             sessions.map((e) => {
