@@ -383,6 +383,23 @@ export default function FocusFlow() {
     };
   }, []);
 
+  const markHabitDoneById = (id) => {
+    if (!id) return;
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id !== id) return h;
+        const day = todayKey();
+        const isNewDay = h.lastDone !== day;
+        return {
+          ...h,
+          lastDone: day,
+          streak: isNewDay ? h.streak + 1 : h.streak,
+        };
+      })
+    );
+    setActiveHabitId(null); // скидаємо "активну" звичку після автопозначення
+  };
+
   // Todos (backfill extra fields)
   const [todos, setTodos] = useState(
     /** @type {Todo[]} */ (
@@ -420,14 +437,18 @@ export default function FocusFlow() {
   // Start from habit
   const [startSignal, setStartSignal] = useState(0);
   const [currentTask, setCurrentTask] = useState("");
+  const [activeHabitId, setActiveHabitId] = useState(null);
+  // Start from habit
   const startHabit = async (habit) => {
     ensureAudioContext();
     await ensurePermission();
     const m = Math.max(5, Math.min(60, Number(habit.mins) || 15));
     setPomo({ ...pomo, minutes: m });
     setCurrentTask(`${habit.name} • ${m}m`);
+    setActiveHabitId(habit.id); // ← позначаємо, що сесію запущено зі звички
     setStartSignal((s) => s + 1);
   };
+
   // Start from task (use estimateMins if set)
   const startTask = async (todo) => {
     ensureAudioContext();
@@ -439,6 +460,7 @@ export default function FocusFlow() {
     );
     setPomo({ ...pomo, minutes: m });
     setCurrentTask(`${todo.title} • ${m}m`);
+    setActiveHabitId(null); // ← сесію запущено НЕ зі звички
     setStartSignal((s) => s + 1);
   };
 
@@ -557,8 +579,9 @@ export default function FocusFlow() {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             FocusFlow
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Habits • Pomodoro • Mini-Kanban
+          <p className="text-sm leading-snug text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+            Tiny productivity app that combines a Pomodoro timer, mini-kanban
+            tasks, and habits — with browser notifications and a daily goal.
           </p>
         </div>
 
@@ -687,6 +710,8 @@ export default function FocusFlow() {
             setPomo={setPomo}
             externalStartSignal={startSignal}
             currentTask={currentTask}
+            activeHabitId={activeHabitId}
+            onHabitAutoDone={markHabitDoneById}
           />
         </SectionCard>
 
@@ -730,6 +755,35 @@ function Pill({ children, variant = "slate" }) {
   return (
     <span className={`text-[11px] rounded-full px-2 py-0.5 ${cls}`}>
       {children}
+    </span>
+  );
+}
+
+/* Small clickable help tooltip */
+function HelpTip({ label = "Help", children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block">
+      <button
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full border text-xs opacity-70 hover:opacity-100 transition
+                   bg-white dark:bg-slate-900 dark:border-slate-700"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        title={label}
+      >
+        ?
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-50 mt-2 w-64 p-3 rounded-xl border shadow-lg
+                     bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+        >
+          <div className="text-xs leading-relaxed">{children}</div>
+        </div>
+      )}
     </span>
   );
 }
@@ -869,8 +923,9 @@ function Board({ todos, setTodos, onStartTask }) {
               onKeyDown={(e) => e.key === "Enter" && add()}
               placeholder="Add a task…"
               className="h-9 min-w-0 flex-[1_1_240px] rounded-xl border border-slate-200 bg-white text-slate-900 px-3
-                         focus:outline-none focus:ring-2 focus:ring-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+                 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             />
+
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
@@ -881,13 +936,15 @@ function Board({ todos, setTodos, onStartTask }) {
               <option value="med">Med</option>
               <option value="low">Low</option>
             </select>
+
             <input
               type="date"
               value={due}
               onChange={(e) => setDue(e.target.value)}
               title="Due date"
-              className="h-9 shrink-0 w-[130px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 w-[150px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
+
             <input
               type="time"
               value={time}
@@ -895,22 +952,34 @@ function Board({ todos, setTodos, onStartTask }) {
               title="Time"
               className="h-9 shrink-0 w-[110px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
-            <input
-              type="number"
-              min={5}
-              max={120}
-              step={5}
-              value={estimate}
-              onChange={(e) => setEstimate(e.target.value)}
-              placeholder="Est"
-              title="Estimate (minutes)"
-              className="h-9 shrink-0 w-[90px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
-            />
+
+            {/* Estimate + help (NEW) */}
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={5}
+                max={120}
+                step={5}
+                value={estimate}
+                onChange={(e) => setEstimate(e.target.value)}
+                placeholder="Est"
+                title="Estimate (minutes)"
+                className="h-9 shrink-0 w-[74px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              />
+              <HelpTip label="Estimate help">
+                <p className="mb-1 font-semibold">Estimate (minutes)</p>
+                <p>
+                  Planned time for this task. When you press <b>Start</b> on
+                  this task, the session will use this value.
+                </p>
+              </HelpTip>
+            </div>
+
             <select
               value={remind}
               onChange={(e) => setRemind(parseInt(e.target.value))}
               title="Remind"
-              className="h-9 shrink-0 w-[110px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 w-[118px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             >
               <option value={0}>No alert</option>
               <option value={5}>5m before</option>
@@ -920,6 +989,7 @@ function Board({ todos, setTodos, onStartTask }) {
               <option value={120}>2h before</option>
               <option value={1440}>1 day before</option>
             </select>
+
             <button
               onClick={add}
               className="h-9 shrink-0 px-3 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
@@ -970,10 +1040,12 @@ function Board({ todos, setTodos, onStartTask }) {
       </div>
 
       <div>
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
+        {/* Header секції Done */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium text-slate-700 dark:text-slate-300">
             Done ({doneFiltered.length})
           </h3>
+
           {done.length > 0 && (
             <button
               onClick={() => setTodos(todos.filter((t) => !t.done))}
@@ -983,6 +1055,8 @@ function Board({ todos, setTodos, onStartTask }) {
             </button>
           )}
         </div>
+
+        {/* List of completed tasks */}
         <Column
           title=""
           items={doneFiltered}
@@ -1166,6 +1240,7 @@ function Column({
               onChange={(e) => setTitleV(e.target.value)}
               className="h-9 min-w-0 flex-[1_1_220px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
+
             <select
               value={priorityV}
               onChange={(e) => setPriorityV(e.target.value)}
@@ -1175,18 +1250,42 @@ function Column({
               <option value="med">Med</option>
               <option value="low">Low</option>
             </select>
+
             <input
               type="date"
               value={dueV}
               onChange={(e) => setDueV(e.target.value)}
-              className="h-9 shrink-0 w-[130px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 w-[150px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
+
             <input
               type="time"
               value={timeV}
               onChange={(e) => setTimeV(e.target.value)}
               className="h-9 shrink-0 w-[110px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
+
+            {/* Estimate + help (NEW) */}
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={5}
+                max={120}
+                step={5}
+                value={estimateV}
+                onChange={(e) => setEstimateV(e.target.value)}
+                placeholder="Est"
+                className="h-9 shrink-0 w-[74px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              />
+              <HelpTip label="Estimate help">
+                <p className="mb-1 font-semibold">Estimate (minutes)</p>
+                <p>
+                  Planned time for this task. When you press <b>Start</b> on
+                  this task, the session will use this value.
+                </p>
+              </HelpTip>
+            </div>
+
             <select
               value={remindV}
               onChange={(e) => setRemindV(parseInt(e.target.value))}
@@ -1200,16 +1299,7 @@ function Column({
               <option value={120}>2h</option>
               <option value={1440}>1 day</option>
             </select>
-            <input
-              type="number"
-              min={5}
-              max={120}
-              step={5}
-              value={estimateV}
-              onChange={(e) => setEstimateV(e.target.value)}
-              placeholder="Est"
-              className="h-9 shrink-0 w-[90px] rounded-lg border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
-            />
+
             <div className="ml-auto flex gap-2">
               <button
                 onClick={save}
@@ -1265,7 +1355,15 @@ function Column({
 }
 
 /* ===================== Pomodoro ===================== */
-function Pomodoro({ pomo, setPomo, externalStartSignal, currentTask }) {
+/* ===================== Pomodoro ===================== */
+function Pomodoro({
+  pomo,
+  setPomo,
+  externalStartSignal,
+  currentTask,
+  activeHabitId,
+  onHabitAutoDone,
+}) {
   const [running, setRunning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(pomo.minutes * 60);
   const timerRef = useRef(0);
@@ -1276,21 +1374,18 @@ function Pomodoro({ pomo, setPomo, externalStartSignal, currentTask }) {
   const [melody, setMelody] = useState(load("ff.melody", "victory"));
   useEffect(() => save("ff.melody", melody), [melody]);
 
-  // Autostart when external signal arrives
   useEffect(() => {
     if (!externalStartSignal) return;
     setSecondsLeft(pomo.minutes * 60);
     setRunning(true);
   }, [externalStartSignal, pomo.minutes]);
 
-  // Tick every second when running
   useEffect(() => {
     if (!running) return;
     timerRef.current = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [running]);
 
-  // Clean task name for history
   const baseName = (label) => {
     const s = String(label || "")
       .split("•")[0]
@@ -1298,7 +1393,6 @@ function Pomodoro({ pomo, setPomo, externalStartSignal, currentTask }) {
     return s || "Pomodoro";
   };
 
-  // Session finish
   useEffect(() => {
     if (secondsLeft <= 0) {
       setRunning(false);
@@ -1315,6 +1409,10 @@ function Pomodoro({ pomo, setPomo, externalStartSignal, currentTask }) {
       };
       const newHistory = [...(pomo.history ?? []), entry];
       setPomo({ ...pomo, sessions, history: newHistory });
+
+      if (activeHabitId && typeof onHabitAutoDone === "function") {
+        onHabitAutoDone(activeHabitId);
+      }
 
       playMelodyByName(ensureAudioContext(), melody, volume);
       if ("vibrate" in navigator) navigator.vibrate([200, 80, 200]);
@@ -1363,7 +1461,6 @@ function Pomodoro({ pomo, setPomo, externalStartSignal, currentTask }) {
     .padStart(2, "0");
   const ss = (secondsLeft % 60).toString().padStart(2, "0");
 
-  // Hotkeys
   useEffect(() => {
     const onKey = (e) => {
       if (e.code === "Space") {
@@ -1482,6 +1579,13 @@ function Habits({ habits, setHabits, onStartHabit }) {
     setHabits(
       habits.map((h) => {
         if (h.id !== id) return h;
+
+        const isToday = h.lastDone === day;
+
+        if (isToday) {
+          return { ...h, lastDone: "" };
+        }
+
         const isNewDay = h.lastDone !== day;
         return {
           ...h,
@@ -1491,6 +1595,7 @@ function Habits({ habits, setHabits, onStartHabit }) {
       })
     );
   };
+
   const remove = (id) => setHabits(habits.filter((h) => h.id !== id));
 
   const add = () => {
@@ -1522,7 +1627,7 @@ function Habits({ habits, setHabits, onStartHabit }) {
           min={5}
           max={60}
           value={mins}
-          onChange={(e) => setMins(e.target.value)}
+          onChange={(e) => setMins(parseInt(e.target.value || "0", 10))}
           className="w-20 rounded-xl border px-3 py-2 text-center dark:bg-slate-900 dark:border-slate-700"
           title="Minutes"
         />
@@ -1537,42 +1642,65 @@ function Habits({ habits, setHabits, onStartHabit }) {
       {/* Scroll list */}
       <div className="mt-3 -mr-2 pr-2 h-64 overflow-y-auto custom-scroll">
         <ul className="space-y-2">
-          {habits.map((h) => (
-            <li
-              key={h.id}
-              className="group flex items-center justify-between rounded-xl border bg-slate-50 px-3 py-2
-                         border-slate-200 dark:bg-slate-900/60 dark:border-slate-700"
-            >
-              <div>
-                <div className="font-medium">
-                  {h.name} — <span className="text-slate-500">{h.mins}m</span>
+          {habits.map((h) => {
+            const isDoneToday = h.lastDone === todayKey();
+            return (
+              <li
+                key={h.id}
+                className={`group flex items-center justify-between rounded-xl border px-3 py-2 transition
+                  ${
+                    isDoneToday
+                      ? "bg-emerald-50 border-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-700"
+                      : "bg-slate-50 border-slate-200 dark:bg-slate-900/60 dark:border-slate-700"
+                  }`}
+              >
+                <div>
+                  <div className="font-medium flex items-center gap-2">
+                    {h.name} — <span className="text-slate-500">{h.mins}m</span>
+                    {isDoneToday && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs
+                                       bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                      >
+                        ✓ Today
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Streak: {h.streak} day{h.streak === 1 ? "" : "s"}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Streak: {h.streak} day{h.streak === 1 ? "" : "s"}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onStartHabit?.(h)}
+                    className="px-2 py-1 rounded-lg bg-white border text-sm dark:bg-slate-900 dark:border-slate-700"
+                  >
+                    Start
+                  </button>
+
+                  <button
+                    onClick={() => toggleDone(h.id)}
+                    className={`px-2 py-1 rounded-lg text-sm transition
+                      ${
+                        isDoneToday
+                          ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                          : "bg-white border dark:bg-slate-900 dark:border-slate-700"
+                      }`}
+                  >
+                    {isDoneToday ? "Done ✓" : "Done today"}
+                  </button>
+
+                  <button
+                    onClick={() => remove(h.id)}
+                    className="opacity-0 group-hover:opacity-100 transition text-sm text-slate-500 dark:text-slate-400"
+                  >
+                    Delete
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onStartHabit?.(h)}
-                  className="px-2 py-1 rounded-lg bg-white border text-sm dark:bg-slate-900 dark:border-slate-700"
-                >
-                  Start
-                </button>
-                <button
-                  onClick={() => toggleDone(h.id)}
-                  className="px-2 py-1 rounded-lg bg-white border text-sm dark:bg-slate-900 dark:border-slate-700"
-                >
-                  Done today
-                </button>
-                <button
-                  onClick={() => remove(h.id)}
-                  className="opacity-0 group-hover:opacity-100 transition text-sm text-slate-500 dark:text-slate-400"
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
           {habits.length === 0 && (
             <li className="text-sm text-slate-400 dark:text-slate-500">
               Add your first habit 🌱
@@ -1660,22 +1788,28 @@ function DailyGoal({ pomo }) {
   const sessions = useMemo(() => {
     const hist = pomo.history ?? [];
     const today = new Date();
-    const key = (d) => new Date(d).toISOString().slice(0, 10);
+
+    const localKey = (d) => {
+      const off = d.getTimezoneOffset();
+      return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+    };
 
     if (view === "today") {
-      const k = key(today);
+      const k = localKey(today);
       return hist
         .filter((e) => e.day === k)
         .sort((a, b) => (b.at || 0) - (a.at || 0));
     }
+
     if (view === "yesterday") {
       const y = new Date(today);
       y.setDate(today.getDate() - 1);
-      const k = key(y);
+      const k = localKey(y);
       return hist
         .filter((e) => e.day === k)
         .sort((a, b) => (b.at || 0) - (a.at || 0));
     }
+
     const start = new Date(today);
     start.setDate(today.getDate() - 6);
     return hist
