@@ -541,116 +541,119 @@ export default function FocusFlow() {
   return (
     <div
       className="
-        min-h-screen transition-colors duration-300
-        bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900
-        dark:from-slate-950 dark:to-slate-900 dark:text-slate-100
-      "
+      min-h-dvh w-full overflow-x-hidden
+      transition-colors duration-300
+      bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900
+      dark:from-slate-950 dark:to-slate-900 dark:text-slate-100
+    "
     >
       {/* Header */}
-      <header className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            FocusFlow
-          </h1>
-          <p className="text-sm leading-snug text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-            Tiny productivity app that combines a Pomodoro timer, mini-kanban
-            tasks, and habits - with browser notifications and a daily goal.
-          </p>
-        </div>
+      <header className="w-full max-w-7xl mx-auto px-4 py-6">
+        <div className="flex items-start sm:items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              FocusFlow
+            </h1>
+            <p className="text-sm leading-snug text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+              Tiny productivity app that combines a Pomodoro timer, mini-kanban
+              tasks, and habits — with browser notifications and a daily goal.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportData}
-            className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow
-                       dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-          >
-            Export
-          </button>
+          {/* buttons wrap nicely on mobile */}
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap overflow-x-visible">
+            <button
+              onClick={exportData}
+              className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow
+                   dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+            >
+              Export
+            </button>
 
-          <label
-            className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow cursor-pointer
-                       dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-          >
-            Import
-            <input
-              type="file"
-              accept="application/json"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                await importDataFromFile(f, () => location.reload());
+            <label
+              className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow cursor-pointer
+                   dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+            >
+              Import
+              <input
+                type="file"
+                accept="application/json"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  await importDataFromFile(f, () => location.reload());
+                }}
+                className="hidden"
+              />
+            </label>
+
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                localStorage.clear();
+                seedIfEmpty();
+                location.reload();
               }}
-              className="hidden"
-            />
-          </label>
+              className="px-3 py-1.5 rounded-xl bg-black text-white text-sm shadow-sm hover:shadow md:px-4
+                   dark:bg-white dark:text-slate-900"
+            >
+              Reset
+            </a>
 
-          <a
-            className="px-3 py-1.5 rounded-xl bg-black text-white text-sm shadow-sm hover:shadow md:px-4
-                       dark:bg-white dark:text-slate-900"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              localStorage.clear();
-              seedIfEmpty();
-              location.reload();
-            }}
-          >
-            Reset
-          </a>
+            <a
+              href="https://github.com/viktoriyaRi/focusflow/blob/main/README.md"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-white text-slate-900 border text-sm shadow-sm hover:shadow
+                   dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+            >
+              View Docs
+            </a>
 
-          <a
-            className="px-3 py-1.5 rounded-xl bg-white text-slate-900 border text-sm shadow-sm hover:shadow
-                       dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-            href="https://github.com/viktoriyaRi/focusflow/blob/main/README.md"
-            target="_blank"
-            rel="noreferrer"
-          >
-            View Docs
-          </a>
+            <button
+              onClick={() => {
+                const r = document.documentElement;
+                const next = r.classList.toggle("dark");
+                localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+                setThemeTick((t) => t + 1);
+                primeAudio();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 text-white
+                   dark:bg-slate-100 dark:text-slate-900"
+            >
+              Toggle theme
+            </button>
 
-          <button
-            onClick={() => {
-              const r = document.documentElement;
-              const next = r.classList.toggle("dark");
-              localStorage.setItem(THEME_KEY, next ? "dark" : "light");
-              setThemeTick((t) => t + 1);
-              primeAudio();
-            }}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 text-white
-                       dark:bg-slate-100 dark:text-slate-900"
-          >
-            Toggle theme
-          </button>
-
-          {/* Enable notifications (ask permission only on user action) */}
-          <button
-            onClick={async () => {
-              primeAudio();
-              const okSecure = secureOk();
-              if (!okSecure) {
-                toast.error("Notifications need HTTPS or localhost");
-                return;
-              }
-              const ok = await ensurePermission();
-              if (ok) {
-                notify("✅ Notifications enabled", {
-                  body: "I'll alert you here.",
-                  silent: false,
-                  icon: "/favicon.ico",
-                  badge: "/favicon.ico",
-                });
-                const ctx = ensureAudioContext();
-                if (ctx) playBeep(ctx, 0.9);
-                toast.success("Notifications enabled");
-              } else {
-                toast.error("Allow notifications in the browser settings");
-              }
-            }}
-            className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow
-             dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-          >
-            Enable notifications
-          </button>
+            <button
+              onClick={async () => {
+                primeAudio();
+                const okSecure = secureOk();
+                if (!okSecure) {
+                  toast.error("Notifications need HTTPS or localhost");
+                  return;
+                }
+                const ok = await ensurePermission();
+                if (ok) {
+                  notify("✅ Notifications enabled", {
+                    body: "I'll alert you here.",
+                    silent: false,
+                    icon: "/favicon.ico",
+                    badge: "/favicon.ico",
+                  });
+                  const ctx = ensureAudioContext();
+                  if (ctx) playBeep(ctx, 0.9);
+                  toast.success("Notifications enabled");
+                } else {
+                  toast.error("Allow notifications in the browser settings");
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl bg-white border text-sm shadow-sm hover:shadow
+                   dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+            >
+              Enable notifications
+            </button>
+          </div>
         </div>
       </header>
 
@@ -668,7 +671,7 @@ export default function FocusFlow() {
       />
 
       {/* Main grid */}
-      <main className="max-w-7xl mx-auto px-4 pb-12 grid gap-6 md:grid-cols-2 xl:grid-cols-12">
+      <main className="w-full max-w-7xl mx-auto px-4 pb-12 grid gap-6 md:grid-cols-2 xl:grid-cols-12">
         {/* Tasks */}
         <SectionCard className="xl:col-span-8">
           <h2 className="text-lg font-semibold mb-4">Tasks (Mini-Kanban)</h2>
@@ -767,7 +770,7 @@ function SectionCard({ children, className = "" }) {
     <motion.section
       layout
       className={
-        "bg-white border border-slate-200 rounded-2xl shadow-sm p-4 md:p-6 " +
+        "bg-white border border-slate-200 rounded-xl md:rounded-2xl shadow-sm p-3 sm:p-4 md:p-6 " +
         "dark:bg-slate-800 dark:border-slate-700 transition-colors duration-300 " +
         className
       }
@@ -889,44 +892,48 @@ function Board({ todos, setTodos, onStartTask }) {
       <div>
         {/* Add row */}
         <div className="mb-3">
-          <div className="flex flex-wrap md:flex-row items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 gap-y-2">
+            {/* Title — full width on mobile, compact on md+ */}
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && add()}
               placeholder="Add a task…"
-              className="h-9 min-w-0 flex-[1_1_240px] rounded-xl border border-slate-200 bg-white text-slate-900 px-3
+              className="h-9 min-w-0 grow basis-full md:basis-[240px] rounded-xl border border-slate-200 bg-white text-slate-900 px-3
                  focus:outline-none focus:ring-2 focus:ring-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             />
 
+            {/* Priority — send to the end on mobile */}
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
               title="Priority"
-              className="h-9 shrink-0 w-[88px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="order-10 md:order-none h-9 shrink-0 w-[88px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             >
               <option value="high">High</option>
               <option value="med">Med</option>
               <option value="low">Low</option>
             </select>
 
+            {/* Date */}
             <input
               type="date"
               value={due}
               onChange={(e) => setDue(e.target.value)}
               title="Due date"
-              className="h-9 shrink-0 w-[150px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 basis-[150px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
 
+            {/* Time */}
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
               title="Time"
-              className="h-9 shrink-0 w-[110px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 basis-[110px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             />
 
-            {/* Estimate + help (NEW) */}
+            {/* Estimate + help */}
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -948,11 +955,12 @@ function Board({ todos, setTodos, onStartTask }) {
               </HelpTip>
             </div>
 
+            {/* Remind — a bit wider so “before” is fully visible */}
             <select
               value={remind}
               onChange={(e) => setRemind(parseInt(e.target.value))}
               title="Remind"
-              className="h-9 shrink-0 w-[118px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="h-9 shrink-0 basis-[132px] rounded-xl border px-3 bg-white dark:bg-slate-900 dark:border-slate-700"
             >
               <option value={0}>No alert</option>
               <option value={5}>5m before</option>
@@ -963,9 +971,11 @@ function Board({ todos, setTodos, onStartTask }) {
               <option value={1440}>1 day before</option>
             </select>
 
+            {/* Add — full width on mobile for easy tapping */}
             <button
               onClick={add}
-              className="h-9 shrink-0 px-3 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              className="order-20 md:order-none h-9 shrink-0 px-3 rounded-xl bg-slate-900 text-white
+                 dark:bg-slate-100 dark:text-slate-900 w-full sm:w-auto"
             >
               Add
             </button>
@@ -1014,11 +1024,10 @@ function Board({ todos, setTodos, onStartTask }) {
 
       <div>
         {/* Header секції Done */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
           <h3 className="font-medium text-slate-700 dark:text-slate-300">
             Done ({doneFiltered.length})
           </h3>
-
           {done.length > 0 && (
             <button
               onClick={() => setTodos(todos.filter((t) => !t.done))}
@@ -1304,7 +1313,7 @@ function Column({
       {/* Scroll container */}
       <div className="relative">
         <div
-          className="overflow-y-auto pr-1 -mr-1 custom-scroll pb-4"
+          className="overflow-y-auto pr-2 custom-scroll pb-4"
           style={{ maxHeight: `${scrollMax}px` }}
         >
           <ul className="space-y-2">
@@ -1613,7 +1622,7 @@ function Habits({ habits, setHabits, onStartHabit }) {
       </div>
 
       {/* Scroll list */}
-      <div className="mt-3 -mr-2 pr-2 h-64 overflow-y-auto custom-scroll">
+      <div className="mt-3 pr-2 h-64 overflow-y-auto custom-scroll">
         <ul className="space-y-2">
           {habits.map((h) => {
             const isDoneToday = h.lastDone === todayKey();
@@ -1834,7 +1843,7 @@ function DailyGoal({ pomo }) {
               step="15"
               value={goal}
               onChange={(e) => setGoal(parseInt(e.target.value))}
-              className="w-48 accent-slate-900 dark:accent-slate-200"
+              className="w-full max-w-[220px] accent-slate-900 dark:accent-slate-200"
             />
             <span>{goal}m</span>
           </div>
@@ -1946,7 +1955,7 @@ function WeeklyChart({ pomo }) {
   const dark = isDark();
 
   return (
-    <div className="h-56">
+    <div className="h-44 sm:h-56">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
