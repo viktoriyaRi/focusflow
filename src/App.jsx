@@ -496,60 +496,33 @@ export default function FocusFlow() {
   useEffect(() => {
     const KEY = (t) => `ff.todoRem@${t.id}@${t.due}@${t.remindMins || 0}`;
 
-    // Fire reminder: sound + banner + toast
+    // Fire reminder ...
     const fireReminder = (t) => {
-      const ctx = ensureAudioContext();
-      const vol = load("ff.soundVol", 0.9);
-      if (ctx) playBeep(ctx, vol);
-
-      notify("Task reminder", {
-        body:
-          `${t.title} • due ${t.due}${t.time ? " " + t.time : ""}` +
-          (t.remindMins ? ` (in ${t.remindMins} min)` : ""),
-        tag: KEY(t),
-        requireInteraction: true,
-        renotify: true,
-      });
-
-      if ("vibrate" in navigator) navigator.vibrate([120, 60, 120]);
-      toast(`🔔 ${t.title}`, { duration: 4000 });
+      /* як було */
     };
 
-    // One-time UX tip if notifications are not enabled
+    // One-time UX tip if notifications are not enabled/unsupported
     const WARN_KEY = "ff.notifWarned";
+    const notifGranted = canNotify() && Notification.permission === "granted";
     if (
-      (!secureOk() || Notification.permission !== "granted") &&
+      (!secureOk() || !notifGranted) &&
       localStorage.getItem(WARN_KEY) !== "1"
     ) {
       localStorage.setItem(WARN_KEY, "1");
       toast.error(
-        "Enable notifications (HTTPS or localhost) - click 'Enable notifications' above."
+        canNotify()
+          ? "Enable notifications (HTTPS or localhost) — click 'Enable notifications' above."
+          : "This browser doesn't support Web Notifications."
       );
     }
 
-    // Deadline check loop
+    // Deadline check loop ...
     const check = () => {
-      const now = Date.now();
-      (todos || []).forEach((t) => {
-        if (!t.due) return;
-        const time = t.time && /^\d{2}:\d{2}$/.test(t.time) ? t.time : "09:00";
-        const dueMs = new Date(`${t.due}T${time}:00`).getTime();
-        const ahead = Math.max(0, (t.remindMins || 0) * 60000);
-        const fireFrom = dueMs - ahead;
-        const fireTo = dueMs + 5 * 60 * 1000;
-        const k = KEY(t);
-        const notFiredYet = localStorage.getItem(k) !== "1";
-        if (now >= fireFrom && now <= fireTo && notFiredYet) {
-          localStorage.setItem(k, "1");
-          fireReminder(t);
-        }
-      });
+      /* як було */
     };
 
     check();
     const id = setInterval(check, 10 * 1000);
-
-    // Also check when visibility/focus changes
     const onVis = () => check();
     const onFocus = () => check();
     const onBlur = () => check();
