@@ -2,12 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <!-- Фавіконка з папки public (працює і локально, і на GitHub Pages з base=/focusflow/) -->
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <title>FocusFlow</title>
   </head>
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script type="module" src="./src/main.jsx"></script>
+
+    <!-- Тимчасовий міні-репортер помилок (допомагає з мобільними/старими браузерами).
+         Коли все перевіриш — можна сміливо видаляти цей <script>. -->
+    <script>
+      (function () {
+        function showOverlay(msg) {
+          try {
+            const el = document.createElement("pre");
+            el.style.cssText =
+              "position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;" +
+              "background:#111;color:#ff9;padding:8px;border:1px solid #444;border-radius:8px;" +
+              "z-index:99999;font:12px/1.4 ui-monospace,monospace";
+            el.textContent = msg;
+            document.body.appendChild(el);
+          } catch (_) {}
+        }
+
+        window.addEventListener(
+          "error",
+          function (e) {
+            const m =
+              "Runtime error: " + (e.error?.message || e.message || "unknown");
+            showOverlay(m);
+          },
+          { once: true }
+        );
+
+        window.addEventListener(
+          "unhandledrejection",
+          function (e) {
+            const r = e.reason;
+            const m =
+              "Unhandled rejection: " +
+              (r?.message || (typeof r === "string" ? r : String(r)));
+            showOverlay(m);
+          },
+          { once: true }
+        );
+      })();
+    </script>
+
+    <!-- Вхідна точка Vite/React (у продакшені заміниться на зібраний бандл) -->
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
